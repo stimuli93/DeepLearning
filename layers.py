@@ -96,6 +96,8 @@ def softmax_loss_backward(dout,cache):
     probabilities = (x_exp.T / np.sum(x_exp,axis=1)).T
     N = x.shape[0]
     dx = probabilities
-    dx[xrange(N),y] -= 1
+    tmp = np.zeros(x.shape)
+    tmp[xrange(N),y] = 1.0
+    dx = (dx - tmp)/N
     dx = dx * dout
     return dx
