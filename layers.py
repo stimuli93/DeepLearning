@@ -35,6 +35,36 @@ def dense_backward(dout,cache):
     db = np.sum(dout,axis=0)
     return dx,dw,db
 
+def sigmoid_forward(x):
+    """
+    Inputs
+    x = numpy array of shape (N,D) representing input layer
+
+    Return
+    out = numpy array of shape (N,D) representing output of sigmoid layer
+    cache = storing x for backpropagation
+    """
+    cache = x
+    out = 1/(1 + np.exp(-x))
+    return out,cache
+
+def sigmoid_backward(dout,cache):
+    """
+    Inputs
+    dout = numpy array of shape (N,D) representing gradients of output
+    layer
+    cache = numpy array of shape (N,D) representing input layer for
+    backpropagation
+
+    Return
+    dx = numpy array of shape (N,D) representing gradients of input layer
+    """
+    x = cache
+    out = 1/(1 + np.exp(-x))
+    dx = dout*(out*(1-out))
+    return dx
+
+
 def relu_forward(x):
     """
     Inputs
