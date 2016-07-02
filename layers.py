@@ -64,6 +64,35 @@ def sigmoid_backward(dout,cache):
     dx = dout*(out*(1-out))
     return dx
 
+def tanh_forward(x):
+    """
+    Inputs
+    x = numpy array of shape (N,D) representing input layer
+
+    Return
+    out = numpy array of shape (N,D) representing output of tanh layer
+    cache = storing x for backpropagation
+    """
+    cache = x
+    out = np.tanh(x)
+    return out,cache
+
+def tanh_backward(dout,cache):
+    """
+    Inputs
+    dout = numpy array of shape (N,D) representing gradients of output
+    layer
+    cache = numpy array of shape (N,D) representing input layer for
+    backpropagation
+
+    Return
+    dx = numpy array of shape (N,D) representing gradients of input layer
+    """
+    x = cache
+    out = np.tanh(x)
+    dx = dout*(1-out**2)
+    return dx
+
 
 def relu_forward(x):
     """
@@ -92,6 +121,21 @@ def relu_backward(dout,cache):
     x = cache
     dx = dout*(x>0)
     return dx
+
+def non_linearity_forward(x,hiddenLayer):
+    if hiddenLayer == 'tanh':
+        return tanh_forward(x)
+    if hiddenLayer == 'sigmoid':
+        return sigmoid_forward(x)
+    return relu_forward(x)      
+
+
+def non_linearity_backward(dout,cache,hiddenLayer):
+    if hiddenLayer == 'tanh':
+        return tanh_backward(dout,cache)
+    if hiddenLayer == 'sigmoid':
+        return sigmoid_backward(dout,cache)
+    return relu_backward(dout,cache)
 
 
 def softmax_loss_forward(x,y):
