@@ -1,5 +1,6 @@
 import layers
 import numpy as np
+import initializations
 
 
 class MLP(object):
@@ -13,15 +14,16 @@ class MLP(object):
         self.hiddenSize2 = hiddenSize2
         self.outputSize = outputSize
         self.hiddenLayer = hiddenLayer
-        self.W1 = np.random.random(size=(inputSize, hiddenSize1)) - 0.5
-        self.b1 = np.random.random(size=(hiddenSize1)) - 0.5
-        self.W2 = np.random.random(size=(hiddenSize1, hiddenSize2)) - 0.5
-        self.b2 = np.random.random(size=(hiddenSize2)) - 0.5
-        self.W3 = np.random.random(size=(hiddenSize2,outputSize)) - 0.5
-        self.b3 = np.random.random(size=(outputSize)) - 0.5
         self.loss_history = []
         self.gradientLayer1 = []
         self.gradientLayer2 = []
+
+        self.W1 = initializations.xavier_init((inputSize,hiddenSize1),hiddenLayer=hiddenLayer)
+        self.b1 = initializations.uniform_init((hiddenSize1,))
+        self.W2 = initializations.xavier_init((hiddenSize1,hiddenSize2),hiddenLayer=hiddenLayer)
+        self.b2 = initializations.uniform_init((hiddenSize2,))
+        self.W3 = initializations.xavier_init((hiddenSize2,outputSize),hiddenLayer=hiddenLayer)
+        self.b3 = initializations.uniform_init((outputSize,))
     
 
     def train(self, X, y, X_val=None, y_val=None, learning_rate=1e-2,reg = 1e-4,decay_rate=0.95,
