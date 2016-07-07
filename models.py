@@ -44,7 +44,7 @@ class MLP(object):
             l5out,l5cache = layers.dense_forward(l4out,self.W3, self.b3)
             # adding softmax layer
             loss, l6cache = layers.softmax_loss_forward(l5out, y[ids])
-            loss = loss + reg*(np.sum(self.W1**2) + np.sum(self.W2**2) + np.sum(self.W3**2))
+            loss = loss + 0.5*reg*(np.sum(self.W1**2) + np.sum(self.W2**2) + np.sum(self.W3**2))
             self.loss_history.append(loss)
             if verbose and i % 500 == 0:
                 lr *= decay_rate
@@ -71,9 +71,9 @@ class MLP(object):
             self.params, self.b3 = optimizers.optimize(self.params, self.b3, db3, lr=lr, name='b3', opt=opt)
 
             # gradients due to regularization
-            self.W1 += 0.5*reg*dW1
-            self.W2 += 0.5*reg*dW2
-            self.W3 += 0.5*reg*dW3
+            self.W1 += reg * dW1
+            self.W2 += reg * dW2
+            self.W3 += reg * dW3
 
     def predict(self, X):
 
