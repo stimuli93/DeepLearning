@@ -154,3 +154,32 @@ def softmax_loss_backward(dout, cache):
     dx = (dx - tmp)/N
     dx = dx * dout
     return dx
+
+
+def binary_cross_entropy_loss_forward(x, y):
+    """
+    :param x: predicted output of shape (N,C)
+    :param y: actual output of shape (N,C)
+    :return:
+    loss = binary cross_entropy loss
+    cache = tuple of (x,y) used for backpropagation
+    """
+    N = x.shape[0]
+    loss = -np.sum(y*np.log(x + 1e-7) + (1-y)*np.log(1-x + 1e-7))
+    loss /= N
+    cache = (x, y)
+    return loss, cache
+
+
+def binary_cross_entropy_loss_backward(dout, cache):
+    """
+    :param dout: Gradient coming from 1 layer ahead
+    :param cache: (x, y) used for backpropagation
+    :return:
+    dx = gradients w.r.t input layer of shape (N,C)
+    """
+    x, y = cache
+    N = x.shape[0]
+    dx = -(y*(1.0/(x + 1e-7)) - (1-y)*(1.0/(1-x + 1e-7)))
+    dx /= N
+    return dx*dout
