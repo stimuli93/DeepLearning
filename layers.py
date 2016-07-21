@@ -164,9 +164,9 @@ def binary_cross_entropy_loss_forward(x, y):
     loss = binary cross_entropy loss
     cache = tuple of (x,y) used for backpropagation
     """
-    N = x.shape[0]
+    N, C = x.shape
     loss = -np.sum(y*np.log(x + 1e-7) + (1-y)*np.log(1-x + 1e-7))
-    loss /= N
+    loss /= (N*C)
     cache = (x, y)
     return loss, cache
 
@@ -179,7 +179,7 @@ def binary_cross_entropy_loss_backward(dout, cache):
     dx = gradients w.r.t input layer of shape (N,C)
     """
     x, y = cache
-    N = x.shape[0]
+    N, C = x.shape
     dx = -(y*(1.0/(x + 1e-7)) - (1-y)*(1.0/(1-x + 1e-7)))
-    dx /= N
+    dx /= (N*C)
     return dx*dout
