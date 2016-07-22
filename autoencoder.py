@@ -102,13 +102,13 @@ class SparseAutoEncoder(object):
             loss, l5cache = layers.binary_cross_entropy_loss_forward(layer4, y[ids])
 
             # adding regularization loss
-            loss += 0.5*self.reg*(np.sum(layer2*layer2))
+            loss += 0.5*self.reg*(np.sum(layer2*layer2))/(batch_size*batch_size)
 
             dlayer5 = 1.0
             dlayer4 = layers.binary_cross_entropy_loss_backward(dlayer5, l5cache)
             dlayer3 = layers.non_linearity_backward(dlayer4, l4cache, hiddenLayer='sigmoid')
             dlayer2, dW2, db2 = layers.dense_backward(dlayer3, l3cache)
-            dlayer2 += self.reg*layer2
+            dlayer2 += (self.reg*layer2)/batch_size
             dlayer1 = layers.non_linearity_backward(dlayer2, l2cache, hiddenLayer='relu')
             _, dW1, db1 = layers.dense_backward(dlayer1, l1cache)
 
@@ -132,12 +132,13 @@ class SparseAutoEncoder(object):
         return l4
 
     def getloss(self, X, y):
+        N = X.shape[0]
         layer1, _ = layers.dense_forward(X, self.W1, self.b1)
         layer2, _ = layers.non_linearity_forward(layer1, hiddenLayer='relu')
         layer3, _ = layers.dense_forward(layer2, self.W2, self.b2)
         layer4, _ = layers.non_linearity_forward(layer3, hiddenLayer='sigmoid')
         loss, _ = layers.binary_cross_entropy_loss_forward(layer4, y)
-        loss += 0.5 * self.reg * (np.sum(layer2 * layer2))
+        loss += 0.5 * self.reg * (np.sum(layer2 * layer2))/(N*N)
         return loss
 
 
