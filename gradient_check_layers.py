@@ -1,6 +1,6 @@
 import numpy as np
 import layers
-
+import rnn_layers
 
 def rel_error(x, y):
     """ returns relative error """
@@ -148,6 +148,40 @@ def test_binary_cross_entropy_loss():
     print 'dx error: ', rel_error(dx_num, dx)
 
 
+def test_rnn_step_layer():
+    N, D, H = 4, 5, 6
+    x = np.random.randn(N, D)
+    h = np.random.randn(N, H)
+    Wx = np.random.randn(D, H)
+    Wh = np.random.randn(H, H)
+    b = np.random.randn(H)
+
+    out, cache = rnn_layers.rnn_step_forward(x, h, Wx, Wh, b)
+
+    dnext_h = np.random.randn(*out.shape)
+
+    fx = lambda x: rnn_layers.rnn_step_forward(x, h, Wx, Wh, b)[0]
+    fh = lambda prev_h: rnn_layers.rnn_step_forward(x, h, Wx, Wh, b)[0]
+    fWx = lambda Wx: rnn_layers.rnn_step_forward(x, h, Wx, Wh, b)[0]
+    fWh = lambda Wh: rnn_layers.rnn_step_forward(x, h, Wx, Wh, b)[0]
+    fb = lambda b: rnn_layers.rnn_step_forward(x, h, Wx, Wh, b)[0]
+
+    dx_num = eval_numerical_gradient_array(fx, x, dnext_h)
+    dprev_h_num = eval_numerical_gradient_array(fh, h, dnext_h)
+    dWx_num = eval_numerical_gradient_array(fWx, Wx, dnext_h)
+    dWh_num = eval_numerical_gradient_array(fWh, Wh, dnext_h)
+    db_num = eval_numerical_gradient_array(fb, b, dnext_h)
+
+    dx, dprev_h, dWx, dWh, db = rnn_layers.rnn_step_backward(dnext_h, cache)
+
+    print 'Testing rnn_step layers'
+    print 'dx error: ', rel_error(dx_num, dx)
+    print 'dprev_h error: ', rel_error(dprev_h_num, dprev_h)
+    print 'dWx error: ', rel_error(dWx_num, dWx)
+    print 'dWh error: ', rel_error(dWh_num, dWh)
+    print 'db error: ', rel_error(db_num, db)
+
+
 if __name__ == '__main__':
     test_denselayer()
     test_relulayer()
@@ -155,3 +189,4 @@ if __name__ == '__main__':
     test_sigmoidlayer()
     test_softmax_loss()
     test_binary_cross_entropy_loss()
+    test_rnn_step_layer()
