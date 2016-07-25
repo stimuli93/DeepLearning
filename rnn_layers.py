@@ -48,3 +48,67 @@ def rnn_step_backward(dout, cache):
     dWx = np.dot(x.T, d_tmp)
     dWh = np.dot(prev_h.T, d_tmp)
     return dx, dprev_h, dWx, dWh, db
+
+
+def rnn_forward(x, h0, Wx, Wh, b, non_linearity='tanh'):
+    """
+    Run a vanilla RNN forward on an entire sequence of data. We assume an input
+    sequence composed of T vectors, each of dimension D. The RNN uses a hidden
+    size of H, and we work over a minibatch containing N sequences. After running
+    the RNN forward, we return the hidden states for all timesteps.
+
+    Inputs:
+    - x: Input data for the entire timeseries, of shape (N, T, D).
+    - h0: Initial hidden state, of shape (N, H)
+    - Wx: Weight matrix for input-to-hidden connections, of shape (D, H)
+    - Wh: Weight matrix for hidden-to-hidden connections, of shape (H, H)
+    - b: Biases of shape (H,)
+
+    Returns a tuple of:
+    - h: Hidden states for the entire timeseries, of shape (N, T, H).
+    - cache: Values needed in the backward pass
+    """
+    N, T, D = x.shape
+    H = h0.shape[1]
+    cache = []
+    h = np.zeros((N, T, H))
+    for i in xrange(T):
+        xi = x[:, i, :]
+        h0, cache_i = rnn_step_forward(xi, prev_h=h0, Wx=Wx, Wh=Wh, b=b, non_liniearity=non_linearity)
+        h[:, i, :] = h0
+        cache.append(cache_i)
+    return h, cache
+
+
+def rnn_backward(dh, cache):
+    """
+    Compute the backward pass for a vanilla RNN over an entire sequence of data.
+
+    Inputs:
+    - dh: Upstream gradients of all hidden states, of shape (N, T, H)
+
+    Returns a tuple of:
+    - dx: Gradient of inputs, of shape (N, T, D)
+    - dh0: Gradient of initial hidden state, of shape (N, H)
+    - dWx: Gradient of input-to-hidden weights, of shape (D, H)
+    - dWh: Gradient of hidden-to-hidden weights, of shape (H, H)
+    - db: Gradient of biases, of shape (H,)
+    """
+    N, T, H = dh.shape
+    tx, dh0, dWx, dWh, db, _ = cache[0]
+    dx = np.zeros((N, T, tx.shape[1]))
+    dh0 = np.zeros(dh0.shape)
+    dWx = np.zeros(dWx.shape)
+    dWh = np.zeros(dWh.shape)
+    db = np.zeros(db.shape)
+    for i in reversed(xrange(T)):
+        cache_i = cache[i]
+        dh_i = dh[:, i, :]
+        dxt, dh0, dWxt, dWht, dbt = rnn_step_backward(dh_i, cache_i)
+        dx[:, j, :] = dxt
+        dWx += dWxt
+        dWh += dWht
+        db += dbt
+
+    return dx, dh0, dWx, dWh, db
+
