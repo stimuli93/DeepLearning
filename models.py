@@ -1,4 +1,5 @@
 import layers
+import rnn_layers
 import numpy as np
 import initializations
 import optimizers
@@ -41,7 +42,7 @@ class MLP(object):
             # adding non-linearity layer4
             l4out,l4cache = layers.non_linearity_forward(l3out, self.hiddenLayer)
             # adding dense layer5
-            l5out,l5cache = layers.dense_forward(l4out,self.W3, self.b3)
+            l5out,l5cache = layers.dense_forward(l4out, self.W3, self.b3)
             # adding softmax layer
             loss, l6cache = layers.softmax_loss_forward(l5out, y[ids])
             loss = loss + 0.5*reg*(np.sum(self.W1**2) + np.sum(self.W2**2) + np.sum(self.W3**2))
@@ -87,3 +88,39 @@ class MLP(object):
 
     def accuracy(self, X, y):
         return np.mean(self.predict(X) == y)
+
+
+class RNN_SA(object):
+    """
+    Recurrent Neural Network Specifically for the task of Sentiment Analysis
+    """
+    def __init__(self, input_dim, hidden_dim, non_linearity='tanh'):
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.non_liniearity = non_linearity
+        self.Wx = initializations.xavier_init((input_dim, hidden_dim), hiddenLayer=non_linearity)
+        self.Wh = initializations.xavier_init((hidden_dim, hidden_dim), hiddenLayer=non_linearity)
+        self.b = initializations.uniform_init((hidden_dim,))
+        self.loss_history = []
+        self.params = {}
+
+    def train(self, X, y, learning_rate=1e-2, opt='sgd', n_iters=5000, batch_size=200, verbose=1):
+        lr = learning_rate
+        N, T, D = X.shape
+        for i in xrange(n_iters):
+            ids = np.random.choice(X.shape[0], batch_size)
+            h0 = np.zeros((batch_size, self.hidden_dim))
+            layer1, l1cache = rnn_layers.rnn_forward(X[ids], h0, self.Wx, self.Wh, self.b, self.non_liniearity)
+            final_layer = (layer1[:, T-1, :])
+            loss, l2cache = layers.softmax_loss_forward(final_layer, y[ids])
+            self.loss_history.append(loss)
+
+            dlayer2 = 1.0
+            dlayer1 = layers.softmax_loss_backward(dlayer2, l2cache)
+            dh = np.zeros((batch_size, T, self.hidden_dim))
+            dh[:, T-1, :] = dlayer1
+            _, _, dWx, dWh, db = rnn_layers.rnn_backward(dh, l1cache)
+
+            self.params, self.Wx = optimizers.optimize(self.params, self.Wx, dWx, lr=lr, name='Wx', opt=opt)
+            self.params, self.Wh = optimizers.optimize(self.params, self.Wh, dWh, lr=lr, name='Wh', opt=opt)
+            self.params, self.b = optimizers.optimize(self.params, self.b, db, lr=lr, name='b', opt=opt)
