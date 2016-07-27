@@ -94,21 +94,23 @@ def rnn_backward(dh, cache):
     - dWh: Gradient of hidden-to-hidden weights, of shape (H, H)
     - db: Gradient of biases, of shape (H,)
     """
-    N, T, H = dh.shape
+    dx, dh0, dWx, dWh, db = None, None, None, None, None
+    N,T,H = dh.shape
     tx, dh0, dWx, dWh, db, _ = cache[0]
     dx = np.zeros((N, T, tx.shape[1]))
     dh0 = np.zeros(dh0.shape)
     dWx = np.zeros(dWx.shape)
     dWh = np.zeros(dWh.shape)
     db = np.zeros(db.shape)
-    for i in reversed(xrange(T)):
-        cache_i = cache[i]
-        dh_i = dh[:, i, :]
-        dxt, dh0, dWxt, dWht, dbt = rnn_step_backward(dh_i, cache_i)
+
+    for i in xrange(T):
+        j = T-i-1
+        cache_t = cache[j]
+        dht = dh[:,j,:] + dh0
+        dxt, dh0, dWxt, dWht, dbt = rnn_step_backward(dht, cache_t)
         dx[:, j, :] = dxt
         dWx += dWxt
         dWh += dWht
         db += dbt
-
     return dx, dh0, dWx, dWh, db
 
