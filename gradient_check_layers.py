@@ -183,6 +183,39 @@ def test_rnn_step_layer():
     print 'db error: ', rel_error(db_num, db)
 
 
+def test_rnn_layer():
+    N, D, T, H = 2, 3, 10, 5
+
+    x = np.random.randn(N, T, D)
+    h0 = np.random.randn(N, H)
+    Wx = np.random.randn(D, H)
+    Wh = np.random.randn(H, H)
+    b = np.random.randn(H)
+
+    out, cache = rnn_layers.rnn_forward(x, h0, Wx, Wh, b)
+    dout = np.random.randn(*out.shape)
+
+    dx, dh0, dWx, dWh, db = rnn_layers.rnn_backward(dout, cache)
+
+    fx = lambda x: rnn_layers.rnn_forward(x, h0, Wx, Wh, b)[0]
+    fh0 = lambda h0: rnn_layers.rnn_forward(x, h0, Wx, Wh, b)[0]
+    fWx = lambda Wx: rnn_layers.rnn_forward(x, h0, Wx, Wh, b)[0]
+    fWh = lambda Wh: rnn_layers.rnn_forward(x, h0, Wx, Wh, b)[0]
+    fb = lambda b: rnn_layers.rnn_forward(x, h0, Wx, Wh, b)[0]
+
+    dx_num = eval_numerical_gradient_array(fx, x, dout)
+    dh0_num = eval_numerical_gradient_array(fh0, h0, dout)
+    dWx_num = eval_numerical_gradient_array(fWx, Wx, dout)
+    dWh_num = eval_numerical_gradient_array(fWh, Wh, dout)
+    db_num = eval_numerical_gradient_array(fb, b, dout)
+
+    print 'Testing rnn layers'
+    print 'dx error: ', rel_error(dx_num, dx)
+    print 'dh0 error: ', rel_error(dh0_num, dh0)
+    print 'dWx error: ', rel_error(dWx_num, dWx)
+    print 'dWh error: ', rel_error(dWh_num, dWh)
+    print 'db error: ', rel_error(db_num, db)
+
 if __name__ == '__main__':
     test_denselayer()
     test_relulayer()
@@ -191,3 +224,4 @@ if __name__ == '__main__':
     test_softmax_loss()
     test_binary_cross_entropy_loss()
     test_rnn_step_layer()
+    test_rnn_layer()
