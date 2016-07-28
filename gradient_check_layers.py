@@ -216,6 +216,55 @@ def test_rnn_layer():
     print 'dWh error: ', rel_error(dWh_num, dWh)
     print 'db error: ', rel_error(db_num, db)
 
+
+def test_lstm_step():
+    N, D, H = 4, 5, 6
+    x = np.random.randn(N, D)
+    prev_h = np.random.randn(N, H)
+    prev_c = np.random.randn(N, H)
+    Wx = np.random.randn(D, 4 * H)
+    Wh = np.random.randn(H, 4 * H)
+    b = np.random.randn(4 * H)
+
+    next_h, next_c, cache = rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)
+
+    dnext_h = np.random.randn(*next_h.shape)
+    dnext_c = np.random.randn(*next_c.shape)
+
+    fx_h = lambda x: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[0]
+    fh_h = lambda h: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[0]
+    fc_h = lambda c: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[0]
+    fWx_h = lambda Wx: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[0]
+    fWh_h = lambda Wh: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[0]
+    fb_h = lambda b: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[0]
+
+    fx_c = lambda x: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[1]
+    fh_c = lambda h: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[1]
+    fc_c = lambda c: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[1]
+    fWx_c = lambda Wx: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[1]
+    fWh_c = lambda Wh: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[1]
+    fb_c = lambda b: rnn_layers.lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b)[1]
+
+    num_grad = eval_numerical_gradient_array
+
+    dx_num = num_grad(fx_h, x, dnext_h) + num_grad(fx_c, x, dnext_c)
+    dh_num = num_grad(fh_h, prev_h, dnext_h) + num_grad(fh_c, prev_h, dnext_c)
+    dc_num = num_grad(fc_h, prev_c, dnext_h) + num_grad(fc_c, prev_c, dnext_c)
+    dWx_num = num_grad(fWx_h, Wx, dnext_h) + num_grad(fWx_c, Wx, dnext_c)
+    dWh_num = num_grad(fWh_h, Wh, dnext_h) + num_grad(fWh_c, Wh, dnext_c)
+    db_num = num_grad(fb_h, b, dnext_h) + num_grad(fb_c, b, dnext_c)
+
+    dx, dh, dc, dWx, dWh, db = rnn_layers.lstm_step_backward(dnext_h, dnext_c, cache)
+
+    print 'testing lstm step layers'
+    print 'dx error: ', rel_error(dx_num, dx)
+    print 'dh error: ', rel_error(dh_num, dh)
+    print 'dc error: ', rel_error(dc_num, dc)
+    print 'dWx error: ', rel_error(dWx_num, dWx)
+    print 'dWh error: ', rel_error(dWh_num, dWh)
+    print 'db error: ', rel_error(db_num, db)
+
+
 if __name__ == '__main__':
     test_denselayer()
     test_relulayer()
@@ -225,3 +274,4 @@ if __name__ == '__main__':
     test_binary_cross_entropy_loss()
     test_rnn_step_layer()
     test_rnn_layer()
+    test_lstm_step()
