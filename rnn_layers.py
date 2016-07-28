@@ -114,3 +114,77 @@ def rnn_backward(dh, cache):
         db += dbt
     return dx, dh0, dWx, dWh, db
 
+
+def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
+    """
+    Forward pass for a single timestep of an LSTM.
+
+    The input data has dimension D, the hidden state has dimension H, and we use
+    a minibatch size of N.
+
+    Inputs:
+    - x: Input data, of shape (N, D)
+    - prev_h: Previous hidden state, of shape (N, H)
+    - prev_c: previous cell state, of shape (N, H)
+    - Wx: Input-to-hidden weights, of shape (D, 4H)
+    - Wh: Hidden-to-hidden weights, of shape (H, 4H)
+    - b: Biases, of shape (4H,)
+
+    Returns a tuple of:
+    - next_h: Next hidden state, of shape (N, H)
+    - next_c: Next cell state, of shape (N, H)
+    - cache: Tuple of values needed for backward pass.
+    """
+    N, H = prev_h.shape
+    tmp = np.dot(x, Wx) + np.dot(prev_h, Wh) + b
+    tmp_i = tmp[:, :H]
+    tmp_f = tmp[:, H:2*H]
+    tmp_o = tmp[:, 2*H:3*H]
+    tmp_g = tmp[:, 3*H:]
+
+    next_c = tmp_f*prev_c + tmp_i*tmp_g
+    next_h = tmp_o * np.tanh(next_c)
+    cache = (x, prev_h, prev_c, Wx, Wh, b)
+    return next_h, next_c, cache
+
+
+def lstm_step_backward(dnext_h, dnext_c, cache):
+    """
+    Backward pass for a single timestep of an LSTM.
+
+    Inputs:
+    - dnext_h: Gradients of next hidden state, of shape (N, H)
+    - dnext_c: Gradients of next cell state, of shape (N, H)
+    - cache: Values from the forward pass
+
+    Returns a tuple of:
+    - dx: Gradient of input data, of shape (N, D)
+    - dprev_h: Gradient of previous hidden state, of shape (N, H)
+    - dprev_c: Gradient of previous cell state, of shape (N, H)
+    - dWx: Gradient of input-to-hidden weights, of shape (D, 4H)
+    - dWh: Gradient of hidden-to-hidden weights, of shape (H, 4H)
+    - db: Gradient of biases, of shape (4H,)
+    """
+    x, prev_h, prev_c, Wx, Wh, b = cache
+    N, H = prev_h.shape
+    tmp = np.dot(x, Wx) + np.dot(prev_h, Wh) + b
+    tmp_i = tmp[:, :H]
+    tmp_f = tmp[:, H:2 * H]
+    tmp_o = tmp[:, 2 * H:3 * H]
+    tmp_g = tmp[:, 3 * H:]
+    next_c = tmp_f * prev_c + tmp_i * tmp_g
+
+    dnext_c += dnext_h*tmp_o*(1-(np.tanh(next_c)**2))
+    dtmp_o = dnext_h*np.tanh(next_c)
+    dtmp_f = dnext_c*prev_c
+    dtmp_i = dnext_c*tmp_g
+    dtmp_g = dnext_c*tmp_i
+    dprev_c = dnext_c*tmp_f
+
+    dtmp = np.hstack((dtmp_i, dtmp_f, dtmp_o, dtmp_g))
+    db = np.sum(dtmp, axis=0)
+    dx = np.dot(dtmp, Wx.T)
+    dprev_h = np.dot(dtmp, Wh.T)
+    dWx = np.dot(x.T, dtmp)
+    dWh = np.dot(prev_h.T, dtmp)
+    return dx, dprev_h, dprev_c, dWx, dWh, db
