@@ -188,3 +188,77 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     dWx = np.dot(x.T, dtmp)
     dWh = np.dot(prev_h.T, dtmp)
     return dx, dprev_h, dprev_c, dWx, dWh, db
+
+
+def lstm_forward(x, h0, Wx, Wh, b):
+    """
+    Forward pass for an LSTM over an entire sequence of data. We assume an input
+    sequence composed of T vectors, each of dimension D. The LSTM uses a hidden
+    size of H, and we work over a minibatch containing N sequences. After running
+    the LSTM forward, we return the hidden states for all timesteps.
+
+    Note that the initial cell state is passed as input, but the initial cell
+    state is set to zero. Also note that the cell state is not returned; it is
+    an internal variable to the LSTM and is not accessed from outside.
+
+    Inputs:
+    - x: Input data of shape (N, T, D)
+    - h0: Initial hidden state of shape (N, H)
+    - Wx: Weights for input-to-hidden connections, of shape (D, 4H)
+    - Wh: Weights for hidden-to-hidden connections, of shape (H, 4H)
+    - b: Biases of shape (4H,)
+
+    Returns a tuple of:
+    - h: Hidden states for all timesteps of all sequences, of shape (N, T, H)
+    - cache: Values needed for the backward pass.
+    """
+    N, T, D = x.shape
+    H = h0.shape[1]
+    h = np.zeros((N, T, H))
+    c0 = np.zeros(h0.shape)
+    cache = []
+    for i in xrange(T):
+        xi = x[:, i, :]
+        h0, c0, cache_i = lstm_step_forward(xi, h0, c0, Wx, Wh, b)
+        h[:, i, :] = h0
+        cache.append(cache_i)
+    return h, cache
+
+
+def lstm_backward(dh, cache):
+    """
+    Backward pass for an LSTM over an entire sequence of data.]
+
+    Inputs:
+    - dh: Upstream gradients of hidden states, of shape (N, T, H)
+    - cache: Values from the forward pass
+
+    Returns a tuple of:
+    - dx: Gradient of input data of shape (N, T, D)
+    - dh0: Gradient of initial hidden state of shape (N, H)
+    - dWx: Gradient of input-to-hidden weight matrix of shape (D, 4H)
+    - dWh: Gradient of hidden-to-hidden weight matrix of shape (H, 4H)
+    - db: Gradient of biases, of shape (4H,)
+    """
+    N, T, H = dh.shape
+    tx, dc0, dh0, dWx, dWh, db = cache[0]
+    D = tx.shape[1]
+    dc0 = np.zeros(dc0.shape)
+    dh0 = np.zeros(dh0.shape)
+    dWx = np.zeros(dWx.shape)
+    dWh = np.zeros(dWh.shape)
+    db = np.zeros(db.shape)
+    dx = np.zeros((N, T, D))
+
+    for i in xrange(T):
+        j = T-i-1
+        cache_j = cache[j]
+        dh0 += dh[:, j, :]
+        dx_j, dh0, dc0, dWx_j, dWh_j, db_j = lstm_step_backward(dh0, dc0, cache_j)
+        dx[:, j, :] = dx_j
+        dWx += dWx_j
+        dWh += dWh_j
+        db += db_j
+
+    return dx, dh0, dWx, dWh, db
+
