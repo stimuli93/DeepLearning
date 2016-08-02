@@ -140,7 +140,7 @@ class RNN_SA(object):
         layer1, l1cache = rnn_layers.rnn_forward(X, h0, self.Wx, self.Wh, self.b, self.non_liniearity)
         final_layer = (layer1[:, T - 1, :])
         layer2, _ = layers.dense_forward(final_layer, self.W1, self.b1)
-        return np.argmax(final_layer, axis=1)
+        return np.argmax(layer2, axis=1)
 
     def accuracy(self, X, y):
         return np.mean(self.predict(X) == y)
