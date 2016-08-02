@@ -94,12 +94,14 @@ class RNN_SA(object):
     """
     Recurrent Neural Network Specifically for the task of Sentiment Analysis
     """
-    def __init__(self, input_dim, hidden_dim, non_linearity='tanh'):
+    def __init__(self, input_dim, hidden_dim, output_dim, non_linearity='tanh'):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.non_liniearity = non_linearity
         self.Wx = initializations.xavier_init((input_dim, hidden_dim), hiddenLayer=non_linearity)
         self.Wh = initializations.xavier_init((hidden_dim, hidden_dim), hiddenLayer=non_linearity)
+        self.W1 = initializations.xavier_init((hidden_dim, output_dim), hiddenLayer='relu')
+        self.b1 = initializations.uniform_init((output_dim,))
         self.b = initializations.uniform_init((hidden_dim,))
         self.loss_history = []
         self.params = {}
@@ -112,11 +114,16 @@ class RNN_SA(object):
             h0 = np.zeros((batch_size, self.hidden_dim))
             layer1, l1cache = rnn_layers.rnn_forward(X[ids], h0, self.Wx, self.Wh, self.b, self.non_liniearity)
             final_layer = (layer1[:, T-1, :])
-            loss, l2cache = layers.softmax_loss_forward(final_layer, y[ids])
+            layer2, l2cache = layers.dense_forward(final_layer, self.W1, self.b1)
+            loss, l3cache = layers.softmax_loss_forward(layer2, y[ids])
             self.loss_history.append(loss)
 
-            dlayer2 = 1.0
-            dlayer1 = layers.softmax_loss_backward(dlayer2, l2cache)
+            if verbose == 1 and i % 500 == 0:
+                print 'Iteration %d: loss %g' % (i, loss)
+
+            dlayer3 = 1.0
+            dlayer2 = layers.softmax_loss_backward(dlayer3, l3cache)
+            dlayer1, dW1, db1 = layers.dense_backward(dlayer2, l2cache)
             dh = np.zeros((batch_size, T, self.hidden_dim))
             dh[:, T-1, :] = dlayer1
             _, _, dWx, dWh, db = rnn_layers.rnn_backward(dh, l1cache)
@@ -124,3 +131,16 @@ class RNN_SA(object):
             self.params, self.Wx = optimizers.optimize(self.params, self.Wx, dWx, lr=lr, name='Wx', opt=opt)
             self.params, self.Wh = optimizers.optimize(self.params, self.Wh, dWh, lr=lr, name='Wh', opt=opt)
             self.params, self.b = optimizers.optimize(self.params, self.b, db, lr=lr, name='b', opt=opt)
+            self.params, self.W1 = optimizers.optimize(self.params, self.W1, dW1, lr=lr, name='W1', opt=opt)
+            self.params, self.b1 = optimizers.optimize(self.params, self.b1, db1, lr=lr, name='b1', opt=opt)
+
+    def predict(self, X):
+        N, T, D = X.shape
+        h0 = np.zeros((N, self.hidden_dim))
+        layer1, l1cache = rnn_layers.rnn_forward(X, h0, self.Wx, self.Wh, self.b, self.non_liniearity)
+        final_layer = (layer1[:, T - 1, :])
+        layer2, _ = layers.dense_forward(final_layer, self.W1, self.b1)
+        return np.argmax(final_layer, axis=1)
+
+    def accuracy(self, X, y):
+        return np.mean(self.predict(X) == y)
