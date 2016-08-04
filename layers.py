@@ -183,3 +183,30 @@ def binary_cross_entropy_loss_backward(dout, cache):
     dx = -(y*(1.0/(x + 1e-7)) - (1-y)*(1.0/(1-x + 1e-7)))
     dx /= (N*C)
     return dx*dout
+
+
+def dropout_forward(x, keep_prob=0.5):
+    """
+    :param x: Input data of any shape
+    :param keep_prob: probability of retaining input
+    :return:
+     out: output after droput applied.
+     cache: data required for backprop
+    """
+
+    mask = np.random.rand(*x.shape) < keep_prob
+    out = x * mask
+    cache = mask
+    return out, cache
+
+
+def droput_backward(dout, cache):
+    """
+    :param dout: Gradient coming from 1 layer deeper
+    :param cache: data used for backprop
+    :return:
+    dx: gradient of input layer
+    """
+    mask = cache
+    dx = dout * mask
+    return dx
