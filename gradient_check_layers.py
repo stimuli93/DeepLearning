@@ -299,6 +299,23 @@ def test_lstm():
     print 'dWh error: ', rel_error(dWh_num, dWh)
     print 'db error: ', rel_error(db_num, db)
 
+
+def test_word_embeddings():
+    N, T, V, D = 50, 3, 5, 6
+
+    x = np.random.randint(V, size=(N, T))
+    W = np.random.randn(V, D)
+
+    out, cache = rnn_layers.word_embedding_forward(x, W)
+    dout = np.random.randn(*out.shape)
+    dW = rnn_layers.word_embedding_backward(dout, cache)
+
+    f = lambda W: rnn_layers.word_embedding_forward(x, W)[0]
+    dW_num = eval_numerical_gradient_array(f, W, dout)
+
+    print 'Testing word-embeddings:'
+    print 'dW error: ', rel_error(dW, dW_num)
+
 if __name__ == '__main__':
     test_denselayer()
     test_relulayer()
@@ -309,4 +326,4 @@ if __name__ == '__main__':
     test_rnn_step_layer()
     test_rnn_layer()
     test_lstm_step()
-    test_lstm()
+    test_word_embeddings()
