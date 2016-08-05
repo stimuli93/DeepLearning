@@ -190,6 +190,48 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     return dx, dprev_h, dprev_c, dWx, dWh, db
 
 
+def word_embedding_forward(x, W):
+    """
+    Forward pass for word embeddings. We operate on minibatches of size N where
+    each sequence has length T. We assume a vocabulary of V words, assigning each
+    to a vector of dimension D.
+
+    Inputs:
+    - x: Integer array of shape (N, T) giving indices of words. Each element idx
+    of x muxt be in the range 0 <= idx < V.
+    - W: Weight matrix of shape (V, D) giving word vectors for all words.
+
+    Returns a tuple of:
+    - out: Array of shape (N, T, D) giving word vectors for all input words.
+    - cache: Values needed for the backward pass
+    """
+    out, cache = None, None
+    cache = (x, W)
+    out = W[x, :]
+    return out, cache
+
+
+def word_embedding_backward(dout, cache):
+    """
+    Backward pass for word embeddings. We cannot back-propagate into the words
+    since they are integers, so we only return gradient for the word embedding
+    matrix.
+
+    Inputs:
+    - dout: Upstream gradients of shape (N, T, D)
+    - cache: Values from the forward pass
+
+    Returns:
+    - dW: Gradient of word embedding matrix, of shape (V, D).
+    """
+    dW = None
+    x, W = cache
+    dW = np.zeros(W.shape)
+    np.add.at(dW, x, dout)
+
+    return dW
+
+
 def lstm_forward(x, h0, Wx, Wh, b):
     """
     Forward pass for an LSTM over an entire sequence of data. We assume an input
