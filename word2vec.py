@@ -28,6 +28,8 @@ class Word2Vec:
         self.word_to_index[self.start_token] = 0
         self.word_to_index[self.end_token] = 1
         self.word_to_index[self.unknown_token] = 2
+        self.vocab_size = 3
+        self.loss_history = []
 
     def build_vocab(self, vocab):
         """
@@ -45,15 +47,16 @@ class Word2Vec:
             self.word_to_index[key] = itr
             itr += 1
 
-        vocab_size = len(self.index_to_word)
-        self.W_inp = initializations.uniform_init(shape=(vocab_size, self.size))
-        self.W_out = initializations.uniform_init(shape=(vocab_size, self.size))
+        self.vocab_size = len(self.index_to_word)
+        self.W_inp = initializations.uniform_init(shape=(self.vocab_size, self.size))
+        self.W_out = initializations.uniform_init(shape=(self.vocab_size, self.size))
 
-    def train(self, X):
+    def train(self, X, learning_rate=1e-2):
         """
         Training based on CBOW model using negative sampling
         :param X: list of sentences used for training
         """
+        # TODO: Process X in batches & run n_iters iterations
         for sentence in X:
             sentence = '%s %s %s' % (self.start_token, sentence, self.end_token)
             word_list = nltk.word_tokenize(sentence)
@@ -70,11 +73,48 @@ class Word2Vec:
                 while j <= min(word_list_len-1, idx + right_window):
                     context_window.append(word_list[j])
                     j += 1
-                self.train_word_in_context(word, context_window)
+                self.train_word_in_context(word, context_window, learning_rate)
 
-    def train_word_in_context(self, word, context_window):
+    def train_word_in_context(self, word, context_window, learning_rate):
         """
         :param word: the input word
         :param context_window: list of words in the context of given word
         """
-        print (word, context_window)
+        # idx of self.unknown_token is 2 so if word is not part of vocab index of unknown_token is used
+        context_window_idx = [self.word_to_index.get(wd, 2) for wd in context_window]
+
+        # mean of self.W_inp of words in context_window is used as input
+        x_inp = np.mean(self.W_inp[context_window_idx, :], axis=0)
+        input_word_idx = self.word_to_index.get(word, 2)
+
+        # Negative sampling
+        neg_samples_count = 5
+        neg_samples = np.random.choice(self.vocab_size, neg_samples_count, replace=False)
+
+        if input_word_idx not in neg_samples:
+            neg_samples[0] = input_word_idx
+
+        W = self.W_out[neg_samples, :]
+        x_inp = x_inp.reshape((1, self.size))
+        b = np.zeros((1, neg_samples_count))
+        y = [0]
+        y[0] = neg_samples.tolist().index(input_word_idx)
+        y = np.array(y)
+
+        layer1, l1cache = layers.dense_forward(x_inp, W.T, b)
+        layer2, l2cache = layers.sigmoid_forward(layer1)
+        loss, l3cache = layers.softmax_loss_forward(layer2, y)
+
+        self.loss_history.append(loss)
+        dlayer3 = 1.0
+        dlayer2 = layers.softmax_loss_backward(dlayer3, l3cache)
+        dlayer1 = layers.sigmoid_backward(dlayer2, l2cache)
+        dx_inp, dW_tmp, db = layers.dense_backward(dlayer1, l1cache)
+        dW = dW_tmp.T
+
+        dx_inp = dx_inp.flatten()
+        for id in context_window_idx:
+            self.W_inp[id] -= learning_rate*dx_inp
+
+        for itr, id in enumerate(neg_samples):
+            self.W_out[id] -= learning_rate*dW[itr]
