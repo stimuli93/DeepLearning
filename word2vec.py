@@ -48,3 +48,33 @@ class Word2Vec:
         vocab_size = len(self.index_to_word)
         self.W_inp = initializations.uniform_init(shape=(vocab_size, self.size))
         self.W_out = initializations.uniform_init(shape=(vocab_size, self.size))
+
+    def train(self, X):
+        """
+        Training based on CBOW model using negative sampling
+        :param X: list of sentences used for training
+        """
+        for sentence in X:
+            sentence = '%s %s %s' % (self.start_token, sentence, self.end_token)
+            word_list = nltk.word_tokenize(sentence)
+            word_list_len = len(word_list)
+            left_window = self.window // 2
+            right_window = self.window - left_window
+            for idx, word in enumerate(word_list):
+                context_window = []
+                j = max(idx - left_window, 0)
+                while j < idx:
+                    context_window.append(word_list[j])
+                    j += 1
+                j = idx+1
+                while j <= min(word_list_len-1, idx + right_window):
+                    context_window.append(word_list[j])
+                    j += 1
+                self.train_word_in_context(word, context_window)
+
+    def train_word_in_context(self, word, context_window):
+        """
+        :param word: the input word
+        :param context_window: list of words in the context of given word
+        """
+        print (word, context_window)
