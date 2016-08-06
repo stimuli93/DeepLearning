@@ -14,8 +14,8 @@ class Word2Vec:
         self.window = window
         self.index_to_word = {}
         self.word_to_index = {}
-        self.W_inp = initializations.uniform_init(shape=(3, size))
-        self.W_out = initializations.uniform_init(shape=(3, size))
+        self.W_inp = initializations.xavier_init(shape=(3, size))
+        self.W_out = initializations.xavier_init(shape=(3, size))
 
         self.start_token = "START_TOKEN"
         self.end_token = "END_TOKEN"
@@ -48,8 +48,8 @@ class Word2Vec:
             itr += 1
 
         self.vocab_size = len(self.index_to_word)
-        self.W_inp = initializations.uniform_init(shape=(self.vocab_size, self.size))
-        self.W_out = initializations.uniform_init(shape=(self.vocab_size, self.size))
+        self.W_inp = initializations.xavier_init(shape=(self.vocab_size, self.size))
+        self.W_out = initializations.xavier_init(shape=(self.vocab_size, self.size))
 
     def train(self, X, learning_rate=1e-2):
         """
