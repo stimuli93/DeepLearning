@@ -4,6 +4,26 @@ import nltk
 import initializations
 import pickle
 
+
+def normalise_vector(x):
+    """
+    :param x: vector to be normalised
+    :return: normalised vector
+    """
+    magnitude = np.sqrt(np.sum(x**2))
+    return x/magnitude
+
+
+def get_vector_similarity(v1, v2):
+    """
+    :param v1: Input vector1
+    :param v2: Input vector2
+    :return:  similarity b/w vector v1 & v2
+    """
+    sim = np.inner(normalise_vector(v1),normalise_vector(v2))
+    return sim
+
+
 class Word2Vec:
     def __init__(self, size=100, window=5, min_count=1):
         """
