@@ -5,7 +5,7 @@ import initializations
 
 
 class Word2Vec:
-    def __init__(self, size=100, window=5):
+    def __init__(self, size=100, window=5, min_count=1):
         """
         :param size: the required dimension of words
         :param window: the length of context window
@@ -16,6 +16,7 @@ class Word2Vec:
         self.word_to_index = {}
         self.W_inp = initializations.xavier_init(shape=(3, size))
         self.W_out = initializations.xavier_init(shape=(3, size))
+        self.min_count = min_count
 
         self.start_token = "START_TOKEN"
         self.end_token = "END_TOKEN"
@@ -42,10 +43,11 @@ class Word2Vec:
                 word_count_dict[word] = word_count_dict.get(word, 0) + 1
 
         itr = 3
-        for key in word_count_dict:
-            self.index_to_word[itr] = key
-            self.word_to_index[key] = itr
-            itr += 1
+        for key, value in word_count_dict.iteritems():
+            if value > self.min_count:
+                self.index_to_word[itr] = key
+                self.word_to_index[key] = itr
+                itr += 1
 
         self.vocab_size = len(self.index_to_word)
         self.W_inp = initializations.xavier_init(shape=(self.vocab_size, self.size))
@@ -118,3 +120,10 @@ class Word2Vec:
 
         for itr, id in enumerate(neg_samples):
             self.W_out[id] -= learning_rate*dW[itr]
+
+    def get_word_vector(self, word):
+        """
+        Returning the learnt vector representation for the given word
+        """
+        input_word_idx = self.word_to_index.get(word, 2)
+        return (self.W_inp[input_word_idx] + self.W_out[input_word_idx])/2.0
