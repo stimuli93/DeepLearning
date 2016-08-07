@@ -2,7 +2,7 @@ import layers
 import numpy as np
 import nltk
 import initializations
-
+import pickle
 
 class Word2Vec:
     def __init__(self, size=100, window=5, min_count=1):
@@ -127,3 +127,24 @@ class Word2Vec:
         """
         input_word_idx = self.word_to_index.get(word, 2)
         return (self.W_inp[input_word_idx] + self.W_out[input_word_idx])/2.0
+
+    def save_model(self, filename):
+        """
+        Store model parameters in the specified filename
+        """
+        with open(filename, 'wb') as fp:
+            pickle.dump(self.index_to_word, fp)
+            pickle.dump(self.word_to_index, fp)
+            pickle.dump(self.W_inp, fp)
+            pickle.dump(self.W_out, fp)
+
+    def load_model(self, filename):
+        """
+        :param filename:
+        :return:
+        """
+        with open(filename, 'rb') as fp:
+            self.index_to_word = pickle.load(fp)
+            self.word_to_index = pickle.load(fp)
+            self.W_inp = pickle.load(fp)
+            self.W_out = pickle.load(fp)
