@@ -124,13 +124,12 @@ def test_softmax_loss():
     num_classes, num_inputs = 10, 50
     x = 0.001 * np.random.randn(num_inputs, num_classes)
     y = np.random.randint(num_classes, size=num_inputs)
-    cache = (x, y)
     dout = 1.0
 
+    _, cache = layers.softmax_loss_forward(x, y)
     dx_num = eval_numerical_gradient(lambda x: layers.softmax_loss_forward(x, y)[0], x, verbose=False)
     dx = layers.softmax_loss_backward(dout, cache)
 
-    # Test svm_loss function. Loss should be around 9 and dx error should be 1e-9
     print 'Testing softmax_loss:'
     print 'dx error: ', rel_error(dx_num, dx)
 

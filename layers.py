@@ -38,20 +38,19 @@ def sigmoid_forward(x):
     out = numpy array of shape (N,D) representing output of sigmoid layer
     cache = storing x for backpropagation
     """
-    cache = x
     out = 1/(1 + np.exp(-x))
+    cache = out.copy()
     return out, cache
 
 
 def sigmoid_backward(dout, cache):
     """
     :param dout: numpy array of shape (N,D) representing gradients of output layer
-    :param cache: numpy array of shape (N,D) representing input layer for backpropagation
+    :param cache: numpy array of shape (N,D) used for backpropagation
     :return:
     dx = numpy array of shape (N,D) representing gradients of input layer
     """
-    x = cache
-    out = 1/(1 + np.exp(-x))
+    out = cache
     dx = dout*(out*(1-out))
     return dx
 
@@ -129,11 +128,11 @@ def softmax_loss_forward(x, y):
     loss = softmax loss
     cache = tuple of (x,y) used for backpropagation
     """
-    cache = (x, y)
-    x_exp = np.exp((x.T - np.max(x, axis=1)).T)
-    probabilities = (x_exp.T / np.sum(x_exp, axis=1)).T
+    prob = np.exp(x - np.max(x, axis=1, keepdims=True))
+    prob /= np.sum(prob, axis=1, keepdims=True)
     N = x.shape[0]
-    loss = -np.mean(np.log(probabilities[xrange(N), y]))
+    cache = (prob.copy(), y)
+    loss = -np.mean(np.log(prob[np.arange(N), y]))
     return loss, cache
 
 
@@ -144,14 +143,11 @@ def softmax_loss_backward(dout, cache):
     :return:
     dx = numpy array of shape (N,C) representing gradients of input layer
     """
-    x, y = cache
-    x_exp = np.exp((x.T - np.max(x, axis=1)).T)
-    probabilities = (x_exp.T / np.sum(x_exp, axis=1)).T
-    N = x.shape[0]
-    dx = probabilities
-    tmp = np.zeros(x.shape)
+    prob, y = cache
+    N = prob.shape[0]
+    tmp = np.zeros(prob.shape)
     tmp[xrange(N), y] = 1.0
-    dx = (dx - tmp)/N
+    dx = (prob - tmp)/N
     dx = dx * dout
     return dx
 
