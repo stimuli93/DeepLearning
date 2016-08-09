@@ -103,7 +103,7 @@ class Word2Vec:
         :param context_window: list of words in the context of given word
         """
         # idx of self.unknown_token is 2 so if word is not part of vocab index of unknown_token is used
-        context_window_idx = [self.word_to_index.get(wd, 2) for wd in context_window]
+        context_window_idx = np.array([self.word_to_index.get(wd, 2) for wd in context_window])
 
         # mean of self.W_inp of words in context_window is used as input
         x_inp = np.mean(self.W_inp[context_window_idx, :], axis=0)
@@ -111,11 +111,11 @@ class Word2Vec:
 
         # Negative sampling
         neg_samples_count = 5
-        neg_samples = np.random.choice(self.vocab_size, neg_samples_count, replace=False)
+        neg_samples = np.random.randint(self.vocab_size, size=neg_samples_count)
 
         if input_word_idx not in neg_samples:
             neg_samples[0] = input_word_idx
-
+        
         W = self.W_out[neg_samples, :]
         x_inp = x_inp.reshape((1, self.size))
         b = np.zeros((1, neg_samples_count))
@@ -135,11 +135,8 @@ class Word2Vec:
         dW = dW_tmp.T
 
         dx_inp = dx_inp.flatten()
-        for id in context_window_idx:
-            self.W_inp[id] -= learning_rate*dx_inp
-
-        for itr, id in enumerate(neg_samples):
-            self.W_out[id] -= learning_rate*dW[itr]
+        self.W_inp[context_window_idx] -= learning_rate*dx_inp
+        self.W_out[neg_samples] -= learning_rate*dW
 
     def get_word_vector(self, word):
         """
@@ -168,3 +165,4 @@ class Word2Vec:
             self.word_to_index = pickle.load(fp)
             self.W_inp = pickle.load(fp)
             self.W_out = pickle.load(fp)
+        self.vocab_size = len(self.index_to_word)
