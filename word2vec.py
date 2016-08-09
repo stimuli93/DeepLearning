@@ -3,6 +3,7 @@ import numpy as np
 import nltk
 import initializations
 import pickle
+from collections import Counter
 
 
 def normalise_vector(x):
@@ -56,14 +57,14 @@ class Word2Vec:
         """
         :param vocab: list of sentences to be used for training
         """
-        word_count_dict = {}
+        word_counter = Counter()
         for sentence in vocab:
             word_list = nltk.word_tokenize(sentence)
             for word in word_list:
-                word_count_dict[word] = word_count_dict.get(word, 0) + 1
+                word_counter[word] += 1
 
         itr = 3
-        for key, value in word_count_dict.iteritems():
+        for key, value in word_counter.items():
             if value > self.min_count:
                 self.index_to_word[itr] = key
                 self.word_to_index[key] = itr
