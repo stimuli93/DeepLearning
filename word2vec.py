@@ -74,61 +74,58 @@ class Word2Vec:
         self.W_inp = initializations.xavier_init(shape=(self.vocab_size, self.size))
         self.W_out = initializations.xavier_init(shape=(self.vocab_size, self.size))
 
-    def train(self, X, learning_rate=1e-2):
+    def train(self, X, learning_rate=1e-2, batch_size=20, n_iters=50):
         """
         Training based on CBOW model using negative sampling
+        :param n_iters: number of iterations
+        :param batch_size: the number of sentences trained upon in 1 iteration
+        :param learning_rate:
         :param X: list of sentences used for training
         """
-        # TODO: Process X in batches & run n_iters iterations
-        for sentence in X:
-            sentence = '%s %s %s' % (self.start_token, sentence, self.end_token)
-            word_list = nltk.word_tokenize(sentence)
-            word_list_len = len(word_list)
-            left_window = self.window // 2
-            right_window = self.window - left_window
-            for idx, word in enumerate(word_list):
-                context_window = []
-                j = max(idx - left_window, 0)
-                while j < idx:
-                    context_window.append(word_list[j])
-                    j += 1
-                j = idx+1
-                while j <= min(word_list_len-1, idx + right_window):
-                    context_window.append(word_list[j])
-                    j += 1
-                self.train_word_in_context(word, context_window, learning_rate)
+        N = len(X)
+        left_window = self.window // 2
+        right_window = self.window - left_window
+        for itr in xrange(n_iters):
+            batch = np.random.randint(N, size=batch_size)
+            for b_id in batch:
+                sentence = '%s %s %s' % (self.start_token, X[b_id], self.end_token)
+                word_list = nltk.word_tokenize(sentence)
+                word_idx = [self.word_to_index.get(wd, 2) for wd in word_list]
+                word_list_len = len(word_idx)
+                loss = 0.0
+                for i in xrange(word_list_len):
+                    context_window = word_idx[max(0, i-left_window):i] +\
+                                     word_idx[i+1:min(i+1+right_window, word_list_len)]
+                    loss += self.train_word_in_context(word_idx[i], context_window, learning_rate)
+                self.loss_history.append(loss/word_list_len)
 
-    def train_word_in_context(self, word, context_window, learning_rate):
+    def train_word_in_context(self, word_id, context_window, learning_rate):
         """
-        :param word: the input word
-        :param context_window: list of words in the context of given word
+        :param learning_rate:
+        :param word_id: the index of word to predicted
+        :param context_window: list of word_ids in the context of given word
         """
-        # idx of self.unknown_token is 2 so if word is not part of vocab index of unknown_token is used
-        context_window_idx = np.array([self.word_to_index.get(wd, 2) for wd in context_window])
-
         # mean of self.W_inp of words in context_window is used as input
-        x_inp = np.mean(self.W_inp[context_window_idx, :], axis=0)
-        input_word_idx = self.word_to_index.get(word, 2)
+        x_inp = np.mean(self.W_inp[context_window, :], axis=0)
 
         # Negative sampling
         neg_samples_count = 5
         neg_samples = np.random.randint(self.vocab_size, size=neg_samples_count)
 
-        if input_word_idx not in neg_samples:
-            neg_samples[0] = input_word_idx
+        if word_id not in neg_samples:
+            neg_samples[0] = word_id
         
         W = self.W_out[neg_samples, :]
         x_inp = x_inp.reshape((1, self.size))
         b = np.zeros((1, neg_samples_count))
         y = [0]
-        y[0] = neg_samples.tolist().index(input_word_idx)
+        y[0] = neg_samples.tolist().index(word_id)
         y = np.array(y)
 
         layer1, l1cache = layers.dense_forward(x_inp, W.T, b)
         layer2, l2cache = layers.sigmoid_forward(layer1)
         loss, l3cache = layers.softmax_loss_forward(layer2, y)
 
-        self.loss_history.append(loss)
         dlayer3 = 1.0
         dlayer2 = layers.softmax_loss_backward(dlayer3, l3cache)
         dlayer1 = layers.sigmoid_backward(dlayer2, l2cache)
@@ -136,8 +133,9 @@ class Word2Vec:
         dW = dW_tmp.T
 
         dx_inp = dx_inp.flatten()
-        self.W_inp[context_window_idx] -= learning_rate*dx_inp
+        self.W_inp[context_window] -= learning_rate*dx_inp
         self.W_out[neg_samples] -= learning_rate*dW
+        return loss
 
     def get_word_vector(self, word):
         """
