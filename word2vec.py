@@ -3,6 +3,7 @@ import numpy as np
 import nltk
 import initializations
 import pickle
+import operator
 from collections import Counter
 
 
@@ -143,6 +144,21 @@ class Word2Vec:
         """
         input_word_idx = self.word_to_index.get(word, 2)
         return (self.W_inp[input_word_idx] + self.W_out[input_word_idx])/2.0
+
+    def most_similar(self, word):
+        """
+        :param word: input word like king
+        :return: list of words with similarity which are most similar to the input word
+        """
+        input_word_vector = self.get_word_vector(word)
+        score_list = []
+        for key, idx in self.word_to_index.iteritems():
+            if word == key:
+                continue
+            model_word_vector = (self.W_inp[idx] + self.W_out[idx])/2.0
+            score_list.append((key, get_vector_similarity(input_word_vector, model_word_vector)))
+        score_list.sort(key=operator.itemgetter(1), reverse=True)
+        return score_list[:5]
 
     def save_model(self, filename):
         """
