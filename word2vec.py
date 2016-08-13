@@ -27,7 +27,7 @@ def get_vector_similarity(v1, v2):
 
 
 class Word2Vec:
-    def __init__(self, size=100, window=5, min_count=1):
+    def __init__(self, size=100, window=2, min_count=1):
         """
         :param size: the required dimension of words
         :param window: the length of context window
@@ -84,8 +84,8 @@ class Word2Vec:
         :param X: list of sentences used for training
         """
         N = len(X)
-        left_window = self.window // 2
-        right_window = self.window - left_window
+        left_window = self.window
+        right_window = self.window
         for itr in xrange(n_iters):
             batch = np.random.randint(N, size=batch_size)
             for b_id in batch:
