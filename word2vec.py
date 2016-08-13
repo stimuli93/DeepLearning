@@ -124,12 +124,10 @@ class Word2Vec:
         y = np.array(y)
 
         layer1, l1cache = layers.dense_forward(x_inp, W.T, b)
-        layer2, l2cache = layers.sigmoid_forward(layer1)
-        loss, l3cache = layers.softmax_loss_forward(layer2, y)
+        loss, l2cache = layers.softmax_loss_forward(layer1, y)
 
-        dlayer3 = 1.0
-        dlayer2 = layers.softmax_loss_backward(dlayer3, l3cache)
-        dlayer1 = layers.sigmoid_backward(dlayer2, l2cache)
+        dlayer2 = 1.0
+        dlayer1 = layers.softmax_loss_backward(dlayer2, l2cache)
         dx_inp, dW_tmp, db = layers.dense_backward(dlayer1, l1cache)
         dW = dW_tmp.T
 
