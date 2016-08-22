@@ -8,12 +8,7 @@ def uniform_init(shape):
     :return:
     out: numpy array of given shape
     """
-    if len(shape) > 1:
-        out = np.random.randn(shape[0], shape[1])
-    else:
-        out = np.random.randn(shape[0])
-
-    return out
+    return np.random.uniform(-1, 1, size=shape)
 
 
 def xavier_init(shape, hiddenLayer='relu'):

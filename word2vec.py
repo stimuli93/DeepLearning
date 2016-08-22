@@ -6,7 +6,7 @@ import pickle
 import operator
 from collections import Counter
 from nltk.corpus import stopwords
-
+from sklearn.utils import shuffle
 
 def normalise_vector(x):
     """
@@ -37,8 +37,8 @@ class Word2Vec:
         self.window = window
         self.index_to_word = {}
         self.word_to_index = {}
-        self.W_inp = initializations.xavier_init(shape=(3, size))
-        self.W_out = initializations.xavier_init(shape=(3, size))
+        self.W_inp = initializations.uniform_init(shape=(3, size))
+        self.W_out = initializations.uniform_init(shape=(3, size))
         self.min_count = min_count
 
         self.start_token = "START_TOKEN"
@@ -74,10 +74,10 @@ class Word2Vec:
                 itr += 1
 
         self.vocab_size = len(self.index_to_word)
-        self.W_inp = initializations.xavier_init(shape=(self.vocab_size, self.size))
-        self.W_out = initializations.xavier_init(shape=(self.vocab_size, self.size))
+        self.W_inp = initializations.uniform_init(shape=(self.vocab_size, self.size))
+        self.W_out = initializations.uniform_init(shape=(self.vocab_size, self.size))
 
-    def train(self, X, learning_rate=1e-2, batch_size=20, n_iters=50):
+    def train(self, X, learning_rate=1e-2, batch_size=100, n_iters=5000):
         """
         Training based on CBOW model using negative sampling
         :param n_iters: number of iterations
@@ -88,70 +88,50 @@ class Word2Vec:
         N = len(X)
         id_x = []
         for i in xrange(N):
-            id_x.append(self.word_to_index[self.start_token])
             sentence = nltk.word_tokenize(X[i])
+            if len(sentence) == 0:
+                continue
+            id_x.append(self.word_to_index[self.start_token])
             for word in sentence:
                 if word in self.word_to_index:
                     id_x.append(self.word_to_index[word])
-            id_x.append(self.word_to_index[self.start_token])
+            id_x.append(self.word_to_index[self.end_token])
 
         corpus_size = len(id_x)
-        left_window = self.window
-        right_window = self.window
+
         for itr in xrange(n_iters):
             batch = np.random.randint(corpus_size, size=batch_size)
-            for w_id in batch:
-                loss = 0.0
-                context_window = id_x[max(0, w_id-left_window):w_id] +\
-                                 id_x[w_id+1:min(w_id+1+right_window, corpus_size)]
+            trX = np.zeros([batch_size, self.size])
+            trY = np.zeros([batch_size], dtype=np.int32)
+            context = []
+            ids_to_update = np.zeros([batch_size], dtype=np.int32)
+            for id, w_id in enumerate(batch):
+                context_ids = id_x[max(0, w_id-self.window):w_id] + id_x[w_id+1:min(w_id+1+self.window, corpus_size)]
+                context.append(context_ids)
+                context_window = np.array(context_ids)
+                trX[id] = np.mean(self.W_inp[context_window, :], axis=0)
+                trY[id] = id
+                ids_to_update[id] = id_x[w_id]
 
-                # Negative sampling
-                neg_samples_count = 5
-                neg_samples = np.random.randint(corpus_size, size=neg_samples_count)
-                neg_samples[0] = w_id
+            context = np.array(context)
+            trX, trY, ids_to_update, context = shuffle(trX, trY, ids_to_update, context, random_state=0)
+            W = self.W_out[ids_to_update]
+            # print trX, trY, ids_to_update, context, W
+            b = np.zeros([batch_size])
+            layer1, l1cache = layers.dense_forward(trX, W.T, b)
+            layer2, l2cache = layers.sigmoid_forward(layer1)
+            loss, l3cache = layers.softmax_loss_forward(layer2, trY)
+            self.loss_history.append(loss)
 
-                neg_samples = [id_x[sample] for sample in neg_samples]
+            dlayer3 = 1.0
+            dlayer2 = layers.softmax_loss_backward(dlayer3, l3cache)
+            dlayer1 = layers.sigmoid_backward(dlayer2, l2cache)
+            dx_inp, dW_tmp, db = layers.dense_backward(dlayer1, l1cache)
+            dW = dW_tmp.T
 
-                loss += self.train_word_in_context(id_x[w_id], np.array(context_window),
-                                                   np.array(neg_samples), learning_rate)
-                self.loss_history.append(loss)
-
-    def train_word_in_context(self, word_id, context_window, neg_samples, learning_rate):
-        """
-        :param learning_rate:
-        :param word_id: the index of word to predicted
-        :param context_window: list of word_ids in the context of given word
-        :param neg_samples: list of word_ids choosen as negative samples
-        """
-
-        # mean of self.W_inp of words in context_window is used as input
-        x_inp = np.mean(self.W_inp[context_window, :], axis=0)
-        x_inp = x_inp.reshape((1, self.size))
-
-        neg_sample_count = len(neg_samples)
-        b = np.zeros((1, neg_sample_count))
-        y = [0]
-        output = np.random.randint(neg_sample_count, size=1)
-        y[0] = output
-        neg_samples[0] = neg_samples[output]
-        neg_samples[output] = word_id
-        y = np.array(y)
-        W = self.W_out[neg_samples, :]
-
-        layer1, l1cache = layers.dense_forward(x_inp, W.T, b)
-        layer2, l2cache = layers.sigmoid_forward(layer1)
-        loss, l3cache = layers.softmax_loss_forward(layer2, y)
-
-        dlayer3 = 1.0
-        dlayer2 = layers.softmax_loss_backward(dlayer3, l3cache)
-        dlayer1 = layers.sigmoid_backward(dlayer2, l2cache)
-        dx_inp, dW_tmp, db = layers.dense_backward(dlayer1, l1cache)
-        dW = dW_tmp.T
-
-        dx_inp = dx_inp.flatten()
-        self.W_inp[context_window] -= learning_rate*dx_inp
-        self.W_out[neg_samples] -= learning_rate*dW
-        return loss
+            for i in xrange(batch_size):
+                self.W_inp[context[i], :] -= (learning_rate * dx_inp[i])/len(context[i])
+            self.W_out[ids_to_update, :] -= learning_rate * dW
 
     def get_word_vector(self, word):
         """
