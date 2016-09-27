@@ -134,6 +134,20 @@ def test_softmax_loss():
     print 'dx error: ', rel_error(dx_num, dx)
 
 
+def test_svm_loss():
+    num_classes, num_inputs = 10, 50
+    x = 0.001 * np.random.randn(num_inputs, num_classes)
+    y = np.random.randint(num_classes, size=num_inputs)
+    dout = 1.0
+
+    _, cache = layers.svm_loss_forward(x, y)
+    dx_num = eval_numerical_gradient(lambda x: layers.svm_loss_forward(x, y)[0], x, verbose=False)
+    dx = layers.svm_loss_backward(dout, cache)
+
+    print 'Testing svm_loss:'
+    print 'dx error: ', rel_error(dx_num, dx)
+
+
 def test_binary_cross_entropy_loss():
     x = np.random.rand(10, 10)
     y = np.random.rand(*x.shape) < 0.5
@@ -321,6 +335,7 @@ if __name__ == '__main__':
     test_tanhlayer()
     test_sigmoidlayer()
     test_softmax_loss()
+    test_svm_loss()
     test_binary_cross_entropy_loss()
     test_rnn_step_layer()
     test_rnn_layer()
