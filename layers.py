@@ -152,6 +152,43 @@ def softmax_loss_backward(dout, cache):
     return dx
 
 
+def svm_loss_forward(x, y):
+    """
+    :param x: numpy array of shape (N,C) representing input layer
+    :param y: numpy array of shape (N,) representing labels of each training example
+    :return:
+    loss = svm loss
+    cache = tuple of (x,y) used for backpropagation
+    """
+    cache = (x, y)
+    N = x.shape[0]
+    label_scores = x[range(N), y]
+    scores = (x.T - label_scores).T + 1
+    scores[range(N), y] = 0
+    scores *= (scores > 0)
+    loss = np.sum(np.sum(scores, axis=1))/N
+    return loss, cache
+
+
+def svm_loss_backward(dout, cache):
+    """
+    :param dout: Gradient coming from 1 layer deeper
+    :param cache: (x,y) used for backpropagation
+    :return:
+    dx = numpy array of shape (N,C) representing gradients of input layer
+    """
+    x, y = cache
+    N = x.shape[0]
+    label_scores = x[range(N), y]
+    scores = (x.T - label_scores).T + 1
+    scores[range(N), y] = 0
+    dx = (scores > 0) * 1
+    row_sum = np.sum(dx, axis=1)
+    dx[range(N), y] = -row_sum
+    dx = (dx * dout)/N
+    return dx
+
+
 def binary_cross_entropy_loss_forward(x, y):
     """
     :param x: predicted output of shape (N,C)
