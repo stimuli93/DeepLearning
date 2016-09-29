@@ -1,31 +1,29 @@
 import numpy as np
+import math
 
 
-def uniform_init(shape):
+def uniform_init(shape, low=-1.0, high=1.0):
     """
-
     :param shape: tuple of integers representing shape of matrix
+    :param low:
+    :param high:
     :return:
     out: numpy array of given shape
     """
-    return np.random.uniform(-1, 1, size=shape)
+    return np.random.uniform(low, high, size=shape)
 
 
-def xavier_init(shape, hiddenLayer='relu'):
+def xavier_init(shape, uniform=True):
     """
-    :param shape: tuple of integers representing shape of matrix
-    :param hiddenLayer: non-linearity to be used
+    :param shape: tuple of integers representing input & output dimensions
+    :param uniform:
     :return:
-    out: numpy array of given shape
+    numpy array of given shape
     """
-    if len(shape) > 1:
-        out = np.random.randn(shape[0], shape[1])
+    if uniform:
+        init_range = math.sqrt(6.0 / (shape[0] + shape[1]))
+        return np.random.uniform(-init_range, init_range, size=shape)
     else:
-        out = np.random.randn(shape[0])
-   
-    if hiddenLayer == 'relu':
-        out = out / np.sqrt(shape[0]/2.0)
-    else:
-        out = out / np.sqrt(shape[0])
-    return out
+        stddev = math.sqrt(3.0 / (shape[0] + shape[1]))
+        return np.random.normal(scale=stddev,size=shape)
 

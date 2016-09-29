@@ -20,11 +20,11 @@ class TwoLayerNet(object):
 
     def initialize_weights(self, inputSize, hiddenSize1, hiddenSize2, num_classes):
         weights = dict()
-        weights['W1'] = initializations.xavier_init((inputSize, hiddenSize1), hiddenLayer=self.non_linearity)
+        weights['W1'] = initializations.xavier_init((inputSize, hiddenSize1))
         weights['b1'] = initializations.uniform_init((hiddenSize1,))
-        weights['W2'] = initializations.xavier_init((hiddenSize1, hiddenSize2), hiddenLayer=self.non_linearity)
+        weights['W2'] = initializations.xavier_init((hiddenSize1, hiddenSize2))
         weights['b2'] = initializations.uniform_init((hiddenSize2,))
-        weights['W3'] = initializations.xavier_init((hiddenSize2, num_classes), hiddenLayer=self.non_linearity)
+        weights['W3'] = initializations.xavier_init((hiddenSize2, num_classes))
         weights['b3'] = initializations.uniform_init((num_classes,))
         return weights
 
@@ -111,9 +111,9 @@ class RNN_SA(object):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.non_liniearity = non_linearity
-        self.Wx = initializations.xavier_init((input_dim, hidden_dim), hiddenLayer=non_linearity)
-        self.Wh = initializations.xavier_init((hidden_dim, hidden_dim), hiddenLayer=non_linearity)
-        self.W1 = initializations.xavier_init((hidden_dim, output_dim), hiddenLayer='relu')
+        self.Wx = initializations.xavier_init((input_dim, hidden_dim))
+        self.Wh = initializations.xavier_init((hidden_dim, hidden_dim))
+        self.W1 = initializations.xavier_init((hidden_dim, output_dim))
         self.b1 = initializations.uniform_init((output_dim,))
         self.b = initializations.uniform_init((hidden_dim,))
         self.loss_history = []
